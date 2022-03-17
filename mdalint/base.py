@@ -36,13 +36,11 @@ class Badge:
     location: LineLocation
     warnings: List[BadgeWarning]
     errors: List[BadgeError]
-    acquired: bool
 
     def __init__(self, where: LineLocation):
         self.location = where
         self.warnings = []
         self.errors = []
-        self.acquired = False
 
     def __repr__(self):
         return (
@@ -50,3 +48,7 @@ class Badge:
             f'with {len(self.warnings)} warnings '
             f'and {len(self.errors)} errors at {id(self)}>'
         )
+
+    @property
+    def acquired(self) -> bool:
+        return not bool(self.errors)

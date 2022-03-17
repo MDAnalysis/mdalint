@@ -26,21 +26,23 @@ def assign_analysis_base(module: Module) -> List[AnalysisBaseBadge]:
     analyses_nodes = (node for node in module.get_children()
                       if _is_class_inheriting(node, 'AnalysisBase'))
     for node in analyses_nodes:
-        location = LineLocation(
+        class_location = LineLocation(
             path=Path(module.file),
             line_number=node.lineno,
         )
-        analysis = AnalysisBaseBadge(location)
+        analysis = AnalysisBaseBadge(class_location)
         badges.append(analysis)
 
         has_single_frame = False
         for child in node.get_children():
+            # TODO: Check that the analysis class assign values in results.
             if isinstance(child, astroid.FunctionDef):
                 location = LineLocation(
                     path=Path(module.file),
                     line_number=node.lineno,
                 )
-                if child.name == '_prepare' and not _func_has_signature(child, 'self'):
+                if (child.name == '_prepare'
+                        and not _func_has_signature(child, 'self')):
                     analysis.warnings.append(BadgeWarning(
                         location=location,
                         title='_prepare method has unexpected arguments',
@@ -52,11 +54,30 @@ def assign_analysis_base(module: Module) -> List[AnalysisBaseBadge]:
                             location=location,
                             title='_single_frame method has unexpected arguments',
                         ))
-                elif child.name == '_conclude' and not _func_has_signature(child, 'self'):
+                elif (child.name == '_conclude'
+                      and not _func_has_signature(child, 'self')):
                     analysis.warnings.append(BadgeWarning(
                         location=location,
                         title='_conclude method has unexpected arguments',
                     ))
+                elif child.name == 'run':
+                    if _func_has_signature(child, 'start', 'stop', 'step', 'verbose'):
+                        analysis.warnings.append(BadgeWarning(
+                            location=location,
+                            title='The analysis class overwrites the run method.',
+                        ))
+                    else:
+                        analysis.errors.append(BadgeError(
+                            location=location,
+                            title=('The analysis class overwrites the run '
+                                   'method and does not use the prescribed '
+                                   'signature.'),
+                        ))
+        if not has_single_frame:
+            analysis.errors.append(BadgeError(
+                location=class_location,
+                title='The class does not define a _single_frame method.',
+            ))
     return badges
 
 
