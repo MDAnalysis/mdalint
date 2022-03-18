@@ -7,7 +7,7 @@
 #
 # Released under the GNU Public Licence, v2 or any higher version
 
-from typing import List
+from typing import List, NamedTuple
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -19,13 +19,13 @@ class LineLocation:
 
 
 @dataclass
-class BadgeWarning:
+class LintWarning:
     location: LineLocation
     title: str
 
 
 @dataclass
-class BadgeError:
+class LintError:
     location: LineLocation
     title: str
 
@@ -34,8 +34,8 @@ class Badge:
     name: str = 'Base Badge'
 
     location: LineLocation
-    warnings: List[BadgeWarning]
-    errors: List[BadgeError]
+    warnings: List[LintWarning]
+    errors: List[LintError]
 
     def __init__(self, where: LineLocation):
         self.location = where
@@ -60,3 +60,9 @@ class Badge:
     @property
     def display_name(self) -> str:
         return self.name
+
+
+class AssignResult(NamedTuple):
+    badges: List[Badge]
+    warnings: List[LintWarning]
+    errors: List[LintError]

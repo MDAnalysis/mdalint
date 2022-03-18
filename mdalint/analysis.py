@@ -14,7 +14,7 @@ import astroid
 from astroid.scoped_nodes import Module
 from astroid.nodes.node_ng import NodeNG
 
-from .base import Badge, BadgeWarning, BadgeError, LineLocation
+from .base import Badge, LintWarning, LintError, LineLocation, AssignResult
 
 
 class AnalysisBaseBadge(Badge):
@@ -29,8 +29,12 @@ class AnalysisBaseBadge(Badge):
         return f'{self.name}[{self._class_name}]'
 
 
-def assign_analysis_base(module: Module) -> List[AnalysisBaseBadge]:
+def assign_analysis_base(module: Module) -> AssignResult:
     badges = []
+    warnings = []
+    errors = []
+    results = AssignResult(badges, warnings, errors)
+
     analyses_nodes = (node for node in module.get_children()
                       if _is_class_inheriting(node, 'AnalysisBase'))
     for node in analyses_nodes:
@@ -51,20 +55,20 @@ def assign_analysis_base(module: Module) -> List[AnalysisBaseBadge]:
                 )
                 if (child.name == '_prepare'
                         and not _func_has_signature(child, 'self')):
-                    analysis.warnings.append(BadgeWarning(
+                    analysis.warnings.append(LintWarning(
                         location=location,
                         title='_prepare method has unexpected arguments',
                     ))
                 elif child.name == '_single_frame':
                     has_single_frame = True
                     if not _func_has_signature(child, 'self'):
-                        analysis.warnings.append(BadgeWarning(
+                        analysis.warnings.append(LintWarning(
                             location=location,
                             title='_single_frame method has unexpected arguments',
                         ))
                 elif (child.name == '_conclude'
                       and not _func_has_signature(child, 'self')):
-                    analysis.warnings.append(BadgeWarning(
+                    analysis.warnings.append(LintWarning(
                         location=location,
                         title='_conclude method has unexpected arguments',
                     ))
@@ -78,18 +82,18 @@ def assign_analysis_base(module: Module) -> List[AnalysisBaseBadge]:
                         # TODO: This should probably be a warning and the error
                         # should probably be if arguments are not present or if
                         # the additional ones are not optional.
-                        analysis.errors.append(BadgeError(
+                        analysis.errors.append(LintError(
                             location=location,
                             title=('The analysis class overwrites the run '
                                    'method and does not use the prescribed '
                                    'signature.'),
                         ))
         if not has_single_frame:
-            analysis.errors.append(BadgeError(
+            analysis.errors.append(LintError(
                 location=class_location,
                 title='The class does not define a _single_frame method.',
             ))
-    return badges
+    return results
 
 
 def _is_class_inheriting(node: NodeNG, base_name: str) -> bool:

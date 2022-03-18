@@ -14,7 +14,7 @@ import argparse
 
 import astroid
 
-from .base import Badge
+from .base import Badge, LineLocation, LintError
 from .analysis import assign_analysis_base
 
 
@@ -27,10 +27,35 @@ def cli() -> None:
 
 def run(root: Path) -> None:
     badges = []
+    warnings = []
+    errors = []
+
     builder = astroid.builder.AstroidBuilder()
-    for file_path in root.glob('**/*.py'):
-        module = builder.file_build(file_path)
-        badges.extend(assign_analysis_base(module))
+    for file_path in path_progress(root.glob('**/*.py')):
+        location = LineLocation(
+            path=file_path,
+            line_number=0,
+        )
+        try:
+            module = builder.file_build(file_path)
+        except astroid.exceptions.AstroidSyntaxError:
+            errors.append(LintError(
+                location=location,
+                title='Syntax error.',
+            ))
+            continue
+        except astroid.exceptions.AstroidBuildingError:
+            errors.append(LintError(
+                location=location,
+                title='Could not load the module.',
+            ))
+            continue
+
+
+        badges_, warnings_, errors_ = assign_analysis_base(module)
+        badges.extend(badges_)
+        warnings.extend(warnings_)
+        errors.extend(errors_)
 
     print('Acquired badges')
     print('There may be some warnings, but the conditions are '
@@ -46,6 +71,21 @@ def run(root: Path) -> None:
     possible_badges = (badge for badge in badges if not badge.acquired)
     _display_badges(possible_badges)
 
+    print()
+    print('Errors')
+    print('Besides badges, the following errors were found. These may '
+          'cause issues at the execution of the tested code.')
+    for error in errors:
+        print(f'* {error.title}')
+        print(f'  => {error.location.path}:{error.location.line_number}')
+
+    print()
+    print('Warnings')
+    print('Besides badges, the following uses may not be ideal.')
+    for warning in warnings:
+        print(f'* {warning.title}')
+        print(f'  => {warning.location.path}:{warning.location.line_number}')
+
 
 def _display_badges(badges: Iterable[Badge]) -> None:
     grouped_badges = itertools.groupby(badges, key=lambda b: b.__class__)
@@ -57,3 +97,16 @@ def _display_badges(badges: Iterable[Badge]) -> None:
                 print(f'        - warning: {warning.title}')
             for error in badge.errors:
                 print(f'        - error: {error.title}')
+
+
+def path_progress(items):
+    last_line_length = 0
+    for item in items:
+        filler = ' ' * max(0, last_line_length - len(str(item)))
+        last_line_length = len(str(item))
+        print(f'\r{item}{filler}', end='')
+        yield item
+
+    filler = ' ' * len(str(item))
+    print(f'\r{filler}', end='')
+    print('\r', end='')
