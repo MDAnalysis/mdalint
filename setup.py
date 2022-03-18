@@ -26,4 +26,7 @@ setuptools.setup(
     install_requires=[
         'astroid',
     ],
+    entry_points={
+        'console_scripts': ['mdalint=mdalint:cli'],
+    },
 )

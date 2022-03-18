@@ -49,6 +49,14 @@ class Badge:
             f'and {len(self.errors)} errors at {id(self)}>'
         )
 
+    def __str__(self):
+        return (f'{self.display_name} in '
+                f'{self.location.path}:{self.location.line_number}')
+
     @property
     def acquired(self) -> bool:
         return not bool(self.errors)
+
+    @property
+    def display_name(self) -> str:
+        return self.name

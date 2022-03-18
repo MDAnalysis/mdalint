@@ -20,6 +20,14 @@ from .base import Badge, BadgeWarning, BadgeError, LineLocation
 class AnalysisBaseBadge(Badge):
     name = 'AnalysisBase'
 
+    def __init__(self, where, class_name):
+        super().__init__(where)
+        self._class_name = class_name
+
+    @property
+    def display_name(self) -> str:
+        return f'{self.name}[{self._class_name}]'
+
 
 def assign_analysis_base(module: Module) -> List[AnalysisBaseBadge]:
     badges = []
@@ -30,7 +38,7 @@ def assign_analysis_base(module: Module) -> List[AnalysisBaseBadge]:
             path=Path(module.file),
             line_number=node.lineno,
         )
-        analysis = AnalysisBaseBadge(class_location)
+        analysis = AnalysisBaseBadge(class_location, class_name=node.name)
         badges.append(analysis)
 
         has_single_frame = False
@@ -67,6 +75,9 @@ def assign_analysis_base(module: Module) -> List[AnalysisBaseBadge]:
                             title='The analysis class overwrites the run method.',
                         ))
                     else:
+                        # TODO: This should probably be a warning and the error
+                        # should probably be if arguments are not present or if
+                        # the additional ones are not optional.
                         analysis.errors.append(BadgeError(
                             location=location,
                             title=('The analysis class overwrites the run '

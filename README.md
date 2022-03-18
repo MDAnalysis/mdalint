@@ -10,8 +10,6 @@ badges when it recognises good practices advocated by MDAnalysis.
 
 ## Usage
 
-*This is not implemented yet!*
-
 ```bash
 mdalint /path/to/library/root
 ```
@@ -20,8 +18,6 @@ At the end of a run, the program lists the badges that were awarded as well as
 errors and warnings that were detected.
 
 ## Badges
-
-*This is not implemented yet!*
 
 ### AnalysisBase
 
